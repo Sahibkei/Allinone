@@ -23,19 +23,22 @@ export const metadata: Metadata = {
     template: "%s | All In One",
   },
   description:
-    "All In One is a utility toolkit for daily tasks: downloaders, converters, compressors, upscalers, and file helpers in one clean app.",
+    "All In One is a utility toolkit for image and PDF tasks: compression, HEIC conversion, merge/split, images to PDF, and page reordering.",
   keywords: [
     "all in one tools",
-    "youtube downloader",
-    "pdf converter",
     "image compressor",
-    "video compressor",
+    "heic to jpg",
+    "heic to png",
+    "pdf merge split",
+    "images to pdf",
+    "pdf rotate reorder",
+    "pdf converter",
     "utility toolkit",
   ],
   openGraph: {
     title: "All In One | Daily Utility Toolkit",
     description:
-      "Use one toolkit for video, image, and document tasks. Fast workflows, clean UX, and a focused tool hub.",
+      "Use one toolkit for image and PDF tasks. Fast workflows, clean UX, and a focused Phase 1 hub.",
     type: "website",
     images: [{ url: "/allinone-logo.png" }],
   },
@@ -43,7 +46,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "All In One | Daily Utility Toolkit",
     description:
-      "A clean all-in-one utility app for everyday conversion and download workflows.",
+      "A clean all-in-one utility app for everyday image and PDF workflows.",
     images: ["/allinone-logo.png"],
   },
   icons: {

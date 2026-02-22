@@ -7,7 +7,7 @@ import { tools } from "@/lib/tools";
 export const metadata: Metadata = {
   title: "Tools",
   description:
-    "Browse all planned and in-progress tools in the All In One utility hub for videos, documents, images, and data.",
+    "Browse the Phase 1 All In One toolkit: image compression, HEIC conversion, and core PDF utilities.",
 };
 
 export default function ToolsPage() {
@@ -19,8 +19,8 @@ export default function ToolsPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.22em] muted">Utility dashboard</p>
           <h1 className="mt-3 text-3xl font-extrabold md:text-5xl">All tools in one place</h1>
           <p className="muted mt-4 max-w-2xl leading-7">
-            Pick a tool and start fast. Each card below maps to a dedicated workflow route that can
-            be wired to backend processing in the next sprint.
+            Pick a Phase 1 tool and start fast. Each card below maps to a dedicated workflow route
+            ready for backend processing.
           </p>
         </section>
 

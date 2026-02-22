@@ -4,7 +4,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { tools } from "@/lib/tools";
 
 export default function Home() {
-  const featuredTools = tools.slice(0, 6);
+  const featuredTools = tools;
 
   return (
     <div className="grid-lines min-h-screen">
@@ -18,9 +18,9 @@ export default function Home() {
             One place for <span className="text-gradient">daily online tools</span>
           </h1>
           <p className="muted mt-5 max-w-2xl text-base leading-7 md:text-lg">
-            All In One groups converters, downloaders, and compressors into a focused web app.
-            Use one clean dashboard for YouTube downloads, document conversion, image utilities,
-            and more.
+            All In One Phase 1 is focused on document and image workflows. Use one clean dashboard
+            for compression, HEIC conversion, PDF merge and split, images to PDF, and page
+            rotation/reorder.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link
@@ -38,8 +38,8 @@ export default function Home() {
           </div>
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
             <div className="surface rounded-2xl p-4">
-              <p className="text-2xl font-bold">12</p>
-              <p className="muted text-sm">Core tools in roadmap</p>
+              <p className="text-2xl font-bold">{tools.length}</p>
+              <p className="muted text-sm">Phase 1 tools</p>
             </div>
             <div className="surface rounded-2xl p-4">
               <p className="text-2xl font-bold">2</p>
