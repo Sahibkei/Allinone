@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ToolPageShell } from "@/components/tools/tool-page-shell";
-import { ToolPlaceholder } from "@/components/tools/tool-placeholder";
+import { PdfMergeSplitClient } from "@/app/tools/pdf-merge-split/pdf-merge-split-client";
 
 export const metadata: Metadata = {
   title: "PDF Merge + Split",
@@ -14,11 +14,7 @@ export default function PdfMergeSplitPage() {
       description="Combine multiple PDFs in order or split pages into separate documents from one focused workspace."
       category="Document"
     >
-      <ToolPlaceholder
-        heading="PDF merge/split workflow is queued"
-        details="The dedicated page is live with matching UI/UX. In its PR, this route will get file ordering, page range split options, and output generation."
-        nextMilestone="Add PDF import, order controls, merge, split by range, and export."
-      />
+      <PdfMergeSplitClient />
     </ToolPageShell>
   );
 }

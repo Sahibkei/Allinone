@@ -26,7 +26,7 @@ export const tools: ToolItem[] = [
     name: "PDF Merge + Split",
     description: "Combine PDFs into one file or split pages into separate PDF outputs.",
     category: "Document",
-    status: "Planned",
+    status: "Ready",
   },
   {
     slug: "images-to-pdf",
