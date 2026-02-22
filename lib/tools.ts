@@ -33,7 +33,7 @@ export const tools: ToolItem[] = [
     name: "Images to PDF",
     description: "Turn one or multiple images into a single ordered PDF document.",
     category: "Document",
-    status: "Planned",
+    status: "Ready",
   },
   {
     slug: "pdf-rotate-reorder",
