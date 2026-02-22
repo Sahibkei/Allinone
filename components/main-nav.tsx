@@ -18,8 +18,8 @@ export function MainNav() {
             <Image
               src="/allinone-logo.png"
               alt="All In One logo"
-              width={84}
-              height={46}
+              width={44}
+              height={44}
               className="rounded-xl border border-white/20 object-cover object-center"
               priority
             />
