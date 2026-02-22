@@ -35,12 +35,12 @@ export default function ToolsPage() {
               </div>
               <h2 className="mt-3 text-lg font-semibold">{tool.name}</h2>
               <p className="muted mt-2 text-sm leading-6">{tool.description}</p>
-              <button
-                type="button"
-                className="mt-4 rounded-full border border-white/20 px-3 py-2 text-xs font-semibold muted"
+              <Link
+                href={`/tools/${tool.slug}`}
+                className="mt-4 inline-flex rounded-full border border-white/20 px-3 py-2 text-xs font-semibold muted hover:text-foreground"
               >
-                Coming soon
-              </button>
+                {tool.status === "Ready" ? "Open tool" : "Open page"}
+              </Link>
             </article>
           ))}
         </section>
