@@ -11,7 +11,7 @@ type CompressionResult = {
   name: string;
   originalBytes: number;
   compressedBytes: number;
-  savingsPercent: number;
+  sizeDeltaPercent: number;
   originalUrl: string;
   compressedUrl: string;
   outputMime: string;
@@ -55,6 +55,10 @@ function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function extensionFromMime(mime: string) {
@@ -191,9 +195,12 @@ async function compressImage(
 
 export function ImageCompressorClient() {
   const objectUrlsRef = useRef<string[]>([]);
+  const runIdRef = useRef(0);
+  const cancelRequestedRef = useRef(false);
   const [files, setFiles] = useState<File[]>([]);
   const [results, setResults] = useState<CompressionResult[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isDownloadingAll, setIsDownloadingAll] = useState(false);
   const [profile, setProfile] = useState<CompressionProfileKey>("balanced");
   const [targetPreset, setTargetPreset] = useState<TargetPresetKey>("none");
   const [outputFormat, setOutputFormat] = useState<OutputFormatKey>("keep");
@@ -222,8 +229,15 @@ export function ImageCompressorClient() {
     return url;
   }
 
+  function cancelCurrentRun() {
+    cancelRequestedRef.current = true;
+    runIdRef.current += 1;
+    setIsProcessing(false);
+  }
+
   function onFilesSelected(fileList: FileList | null) {
     if (!fileList) return;
+    cancelCurrentRun();
     const nextFiles = Array.from(fileList).filter((file) => file.type.startsWith("image/"));
     clearObjectUrls();
     setResults([]);
@@ -232,7 +246,11 @@ export function ImageCompressorClient() {
   }
 
   async function runCompression() {
-    if (!files.length) return;
+    if (!files.length || isProcessing) return;
+    cancelRequestedRef.current = false;
+    runIdRef.current += 1;
+    const activeRunId = runIdRef.current;
+
     setIsProcessing(true);
     clearObjectUrls();
     setResults([]);
@@ -240,34 +258,49 @@ export function ImageCompressorClient() {
     const nextResults: CompressionResult[] = [];
 
     for (let index = 0; index < files.length; index += 1) {
+      if (cancelRequestedRef.current || runIdRef.current !== activeRunId) {
+        setIsProcessing(false);
+        return;
+      }
+
       const file = files[index];
       setProgressText(`Compressing ${index + 1} / ${files.length}...`);
 
       try {
         const { outputBlob, outputMime } = await compressImage(file, profile, targetPreset, outputFormat);
+
+        if (cancelRequestedRef.current || runIdRef.current !== activeRunId) {
+          setIsProcessing(false);
+          return;
+        }
+
         const originalUrl = trackObjectUrl(file);
         const compressedUrl = trackObjectUrl(outputBlob);
-        const savingsPercent =
-          file.size > 0 ? Math.max(0, ((file.size - outputBlob.size) / file.size) * 100) : 0;
+        const sizeDeltaPercent = file.size > 0 ? ((file.size - outputBlob.size) / file.size) * 100 : 0;
 
         nextResults.push({
           id: `${file.name}-${file.lastModified}-${index}`,
           name: file.name,
           originalBytes: file.size,
           compressedBytes: outputBlob.size,
-          savingsPercent,
+          sizeDeltaPercent,
           originalUrl,
           compressedUrl,
           outputMime,
           status: "done",
         });
       } catch (error) {
+        if (cancelRequestedRef.current || runIdRef.current !== activeRunId) {
+          setIsProcessing(false);
+          return;
+        }
+
         nextResults.push({
           id: `${file.name}-${file.lastModified}-${index}`,
           name: file.name,
           originalBytes: file.size,
           compressedBytes: 0,
-          savingsPercent: 0,
+          sizeDeltaPercent: 0,
           originalUrl: "",
           compressedUrl: "",
           outputMime: "",
@@ -277,9 +310,11 @@ export function ImageCompressorClient() {
       }
     }
 
-    setResults(nextResults);
-    setProgressText(`Done. Processed ${files.length} file(s).`);
-    setIsProcessing(false);
+    if (!cancelRequestedRef.current && runIdRef.current === activeRunId) {
+      setResults(nextResults);
+      setProgressText(`Done. Processed ${files.length} file(s).`);
+      setIsProcessing(false);
+    }
   }
 
   function triggerDownload(result: CompressionResult) {
@@ -293,8 +328,16 @@ export function ImageCompressorClient() {
     anchor.remove();
   }
 
-  function downloadAll() {
-    completedResults.forEach((result) => triggerDownload(result));
+  async function downloadAll() {
+    if (!completedResults.length || isDownloadingAll) return;
+    setIsDownloadingAll(true);
+    for (let index = 0; index < completedResults.length; index += 1) {
+      triggerDownload(completedResults[index]);
+      if (index < completedResults.length - 1) {
+        await wait(180);
+      }
+    }
+    setIsDownloadingAll(false);
   }
 
   return (
@@ -379,6 +422,7 @@ export function ImageCompressorClient() {
           <button
             type="button"
             onClick={() => {
+              cancelCurrentRun();
               clearObjectUrls();
               setFiles([]);
               setResults([]);
@@ -402,10 +446,10 @@ export function ImageCompressorClient() {
           <button
             type="button"
             onClick={downloadAll}
-            disabled={completedResults.length === 0}
+            disabled={completedResults.length === 0 || isDownloadingAll || isProcessing}
             className="rounded-full border border-white/25 px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Download all
+            {isDownloadingAll ? "Downloading..." : "Download all"}
           </button>
         </div>
 
@@ -434,7 +478,15 @@ export function ImageCompressorClient() {
                     <div className="mt-3 text-xs muted">
                       <p>Original: {formatBytes(result.originalBytes)}</p>
                       <p>Compressed: {formatBytes(result.compressedBytes)}</p>
-                      <p>Savings: {result.savingsPercent.toFixed(1)}%</p>
+                      {Math.abs(result.sizeDeltaPercent) < 0.05 ? (
+                        <p>No size change</p>
+                      ) : result.sizeDeltaPercent > 0 ? (
+                        <p>Savings: {result.sizeDeltaPercent.toFixed(1)}%</p>
+                      ) : (
+                        <p className="text-amber-300">
+                          Larger by {Math.abs(result.sizeDeltaPercent).toFixed(1)}%
+                        </p>
+                      )}
                     </div>
                     <button
                       type="button"

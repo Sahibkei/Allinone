@@ -15,6 +15,8 @@ export function ToolPlaceholder({ heading, details, nextMilestone }: ToolPlaceho
       </div>
       <button
         type="button"
+        disabled
+        aria-disabled="true"
         className="mt-6 rounded-full border border-white/25 px-4 py-2 text-sm font-semibold muted"
       >
         Build in next PR
