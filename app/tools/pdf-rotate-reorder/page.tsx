@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ToolPageShell } from "@/components/tools/tool-page-shell";
-import { ToolPlaceholder } from "@/components/tools/tool-placeholder";
+import { PdfRotateReorderClient } from "@/app/tools/pdf-rotate-reorder/pdf-rotate-reorder-client";
 
 export const metadata: Metadata = {
   title: "PDF Rotate + Reorder",
@@ -14,11 +14,7 @@ export default function PdfRotateReorderPage() {
       description="Adjust page orientation and page order from one focused editor before downloading the updated PDF."
       category="Document"
     >
-      <ToolPlaceholder
-        heading="PDF rotate/reorder workflow is queued"
-        details="The page is ready and visually consistent with the landing experience. In its PR, this route will include page thumbnails, drag reorder, rotate controls, and export."
-        nextMilestone="Build PDF page preview and rotation/reordering actions."
-      />
+      <PdfRotateReorderClient />
     </ToolPageShell>
   );
 }

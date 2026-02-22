@@ -40,6 +40,6 @@ export const tools: ToolItem[] = [
     name: "PDF Rotate + Reorder",
     description: "Rotate selected PDF pages and reorder page sequence before export.",
     category: "Document",
-    status: "Planned",
+    status: "Ready",
   },
 ];
