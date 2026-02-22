@@ -41,7 +41,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="glass-panel rounded-full border px-3 py-2 text-xs font-medium tracking-wide hover:opacity-90"
+      className="btn-secondary glass-panel border px-3 py-2 text-xs font-medium tracking-wide"
       aria-label="Toggle color theme"
     >
       <span suppressHydrationWarning>{theme === "dark" ? "Light" : "Dark"}</span>

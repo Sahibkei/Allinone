@@ -37,7 +37,7 @@ export default function ToolsPage() {
               <p className="muted mt-2 text-sm leading-6">{tool.description}</p>
               <Link
                 href={`/tools/${tool.slug}`}
-                className="mt-4 inline-flex rounded-full border border-white/20 px-3 py-2 text-xs font-semibold muted hover:text-foreground"
+                className="btn-secondary mt-4 inline-flex border border-white/20 px-3 py-2 text-xs muted"
               >
                 {tool.status === "Ready" ? "Open tool" : "Open page"}
               </Link>
@@ -53,11 +53,11 @@ export default function ToolsPage() {
           <div className="mt-5 flex flex-wrap gap-3">
             <Link
               href="/login"
-              className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white"
+              className="btn-primary px-5 py-3 text-sm"
             >
               Go to login
             </Link>
-            <Link href="/signup" className="glass-panel rounded-full px-5 py-3 text-sm font-semibold">
+            <Link href="/signup" className="btn-secondary glass-panel border px-5 py-3 text-sm">
               Go to signup
             </Link>
           </div>

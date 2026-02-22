@@ -39,7 +39,7 @@ export default function LoginPage() {
             </label>
             <button
               type="submit"
-              className="w-full rounded-full bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-white"
+              className="btn-primary w-full px-4 py-3 text-sm"
             >
               Log in
             </button>

@@ -12,7 +12,7 @@ export default function Home() {
       <main className="site-shell mt-10 pb-12">
         <section className="glass-panel reveal rounded-3xl p-7 md:p-10">
           <div className="inline-flex rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold">
-            Side Hustle Project
+            Phase 1 Live Tools
           </div>
           <h1 className="mt-5 max-w-3xl text-4xl font-extrabold leading-tight md:text-6xl">
             One place for <span className="text-gradient">daily online tools</span>
@@ -23,16 +23,10 @@ export default function Home() {
             rotation/reorder.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <Link
-              href="/tools"
-              className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-            >
+            <Link href="/tools" className="btn-primary px-5 py-3 text-sm">
               Explore tools
             </Link>
-            <Link
-              href="/signup"
-              className="glass-panel rounded-full px-5 py-3 text-sm font-semibold"
-            >
+            <Link href="/signup" className="btn-secondary glass-panel border px-5 py-3 text-sm">
               Create account
             </Link>
           </div>
@@ -87,14 +81,19 @@ export default function Home() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {featuredTools.map((tool) => (
-              <article key={tool.slug} className="glass-panel reveal reveal-delay-2 rounded-2xl p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] muted">
-                  {tool.category}
-                </p>
-                <h3 className="mt-2 text-lg font-semibold">{tool.name}</h3>
-                <p className="muted mt-2 text-sm leading-6">{tool.description}</p>
-                <p className="mt-4 text-xs font-semibold text-[var(--accent)]">{tool.status}</p>
-              </article>
+              <Link key={tool.slug} href={`/tools/${tool.slug}`} className="tool-card-link reveal reveal-delay-2">
+                <article className="glass-panel rounded-2xl p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] muted">
+                    {tool.category}
+                  </p>
+                  <h3 className="mt-2 text-lg font-semibold">{tool.name}</h3>
+                  <p className="muted mt-2 text-sm leading-6">{tool.description}</p>
+                  <div className="mt-4 flex items-center justify-between">
+                    <p className="text-xs font-semibold text-[var(--accent)]">{tool.status}</p>
+                    <p className="text-xs font-semibold muted">Open tool</p>
+                  </div>
+                </article>
+              </Link>
             ))}
           </div>
         </section>
@@ -108,11 +107,11 @@ export default function Home() {
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/login"
-              className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white"
+              className="btn-primary px-5 py-3 text-sm"
             >
               Go to login
             </Link>
-            <Link href="/signup" className="glass-panel rounded-full px-5 py-3 text-sm font-semibold">
+            <Link href="/signup" className="btn-secondary glass-panel border px-5 py-3 text-sm">
               Go to sign up
             </Link>
           </div>

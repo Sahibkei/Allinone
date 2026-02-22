@@ -18,9 +18,9 @@ export function MainNav() {
             <Image
               src="/allinone-logo.png"
               alt="All In One logo"
-              width={44}
-              height={44}
-              className="rounded-xl border border-white/20 object-cover"
+              width={84}
+              height={46}
+              className="rounded-xl border border-white/20 object-cover object-center"
               priority
             />
             <span className="text-sm font-bold tracking-[0.16em]">ALL IN ONE</span>
@@ -28,7 +28,11 @@ export function MainNav() {
 
           <nav className="hidden items-center gap-5 text-sm md:flex">
             {links.map((link) => (
-              <Link key={link.href} href={link.href} className="muted hover:text-foreground">
+              <Link
+                key={link.href}
+                href={link.href}
+                className="muted transition-colors hover:text-[var(--accent)]"
+              >
                 {link.label}
               </Link>
             ))}
@@ -36,10 +40,7 @@ export function MainNav() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Link
-              href="/tools"
-              className="rounded-full bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white transition hover:opacity-90"
-            >
+            <Link href="/tools" className="btn-primary px-3 py-2 text-xs font-semibold">
               Open Hub
             </Link>
           </div>
@@ -47,7 +48,11 @@ export function MainNav() {
 
         <nav className="mt-3 flex items-center justify-center gap-4 text-xs md:hidden">
           {links.map((link) => (
-            <Link key={link.href} href={link.href} className="muted hover:text-foreground">
+            <Link
+              key={link.href}
+              href={link.href}
+              className="muted transition-colors hover:text-[var(--accent)]"
+            >
               {link.label}
             </Link>
           ))}
