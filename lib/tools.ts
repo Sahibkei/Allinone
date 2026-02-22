@@ -19,7 +19,7 @@ export const tools: ToolItem[] = [
     name: "HEIC to JPG / PNG",
     description: "Convert HEIC photos to JPG or PNG with options for quality and transparency.",
     category: "Image",
-    status: "Planned",
+    status: "Ready",
   },
   {
     slug: "pdf-merge-split",
