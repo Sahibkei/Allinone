@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+:root {
+  --background: #edf4ff;
+  --foreground: #14253f;
+  --muted: #5a6f8f;
+  --accent: #1f64ff;
+  --accent-soft: rgba(31, 100, 255, 0.14);
+  --glass-bg: rgba(255, 255, 255, 0.62);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --card-shadow: 0 16px 45px rgba(26, 61, 125, 0.12);
+  --hero-glow: rgba(78, 132, 255, 0.55);
+  --mesh-a: #d9ecff;
+  --mesh-b: #f5f1ff;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sora);
+  --font-mono: var(--font-ibm-plex-mono);
+}
+
+:root[data-theme="dark"] {
+  --background: #061224;
+  --foreground: #eaf3ff;
+  --muted: #9bb1cf;
+  --accent: #69c2ff;
+  --accent-soft: rgba(105, 194, 255, 0.16);
+  --glass-bg: rgba(7, 21, 42, 0.6);
+  --glass-border: rgba(126, 184, 255, 0.22);
+  --card-shadow: 0 20px 46px rgba(0, 0, 0, 0.45);
+  --hero-glow: rgba(53, 139, 255, 0.44);
+  --mesh-a: #091b36;
+  --mesh-b: #081931;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sora), "Segoe UI", sans-serif;
+  background-image:
+    radial-gradient(circle at 14% 16%, var(--hero-glow) 0, transparent 30%),
+    radial-gradient(circle at 86% 11%, color-mix(in srgb, var(--accent) 28%, transparent) 0, transparent 28%),
+    linear-gradient(140deg, var(--mesh-a), var(--mesh-b));
+  background-attachment: fixed;
+}
+
+a {
+  color: inherit;
+}
+
+.glass-panel {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(16px) saturate(140%);
+}
+
+.surface {
+  background: color-mix(in srgb, var(--background) 84%, transparent);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.text-gradient {
+  background: linear-gradient(120deg, var(--accent), color-mix(in srgb, var(--accent) 55%, white));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.grid-lines {
+  position: relative;
+}
+
+.grid-lines::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--foreground) 8%, transparent) 1px, transparent 1px);
+  background-size: 42px 42px;
+  opacity: 0.33;
+  mask-image: radial-gradient(circle at center, black 36%, transparent 85%);
+}
+
+.site-shell {
+  margin-inline: auto;
+  width: min(1140px, calc(100% - 2rem));
+}
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reveal {
+  animation: reveal-up 500ms ease both;
+}
+
+.reveal-delay-1 {
+  animation-delay: 120ms;
+}
+
+.reveal-delay-2 {
+  animation-delay: 240ms;
+}
+
+@media (max-width: 640px) {
+  .site-shell {
+    width: min(1140px, calc(100% - 1.25rem));
+  }
+}
