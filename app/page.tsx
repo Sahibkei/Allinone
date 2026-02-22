@@ -1,65 +1,124 @@
-import Image from "next/image";
+import Link from "next/link";
+import { MainNav } from "@/components/main-nav";
+import { SiteFooter } from "@/components/site-footer";
+import { tools } from "@/lib/tools";
 
 export default function Home() {
+  const featuredTools = tools.slice(0, 6);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="grid-lines min-h-screen">
+      <MainNav />
+      <main className="site-shell mt-10 pb-12">
+        <section className="glass-panel reveal rounded-3xl p-7 md:p-10">
+          <div className="inline-flex rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold">
+            Side Hustle Project
+          </div>
+          <h1 className="mt-5 max-w-3xl text-4xl font-extrabold leading-tight md:text-6xl">
+            One place for <span className="text-gradient">daily online tools</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="muted mt-5 max-w-2xl text-base leading-7 md:text-lg">
+            All In One groups converters, downloaders, and compressors into a focused web app.
+            Use one clean dashboard for YouTube downloads, document conversion, image utilities,
+            and more.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link
+              href="/tools"
+              className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+            >
+              Explore tools
+            </Link>
+            <Link
+              href="/signup"
+              className="glass-panel rounded-full px-5 py-3 text-sm font-semibold"
+            >
+              Create account
+            </Link>
+          </div>
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            <div className="surface rounded-2xl p-4">
+              <p className="text-2xl font-bold">12</p>
+              <p className="muted text-sm">Core tools in roadmap</p>
+            </div>
+            <div className="surface rounded-2xl p-4">
+              <p className="text-2xl font-bold">2</p>
+              <p className="muted text-sm">Modes: light and dark</p>
+            </div>
+            <div className="surface rounded-2xl p-4">
+              <p className="text-2xl font-bold">100%</p>
+              <p className="muted text-sm">Responsive layout</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-8 grid gap-4 md:grid-cols-3">
+          <article className="glass-panel reveal reveal-delay-1 rounded-2xl p-6">
+            <h2 className="text-lg font-semibold">Simple user flow</h2>
+            <p className="muted mt-3 text-sm leading-6">
+              Paste link or upload file, pick options, then download output. Fast actions with low
+              friction.
+            </p>
+          </article>
+          <article className="glass-panel reveal reveal-delay-1 rounded-2xl p-6">
+            <h2 className="text-lg font-semibold">Clean glass UI</h2>
+            <p className="muted mt-3 text-sm leading-6">
+              Glassmorphism layout with clear typography and spacing inspired by modern utility
+              products.
+            </p>
+          </article>
+          <article className="glass-panel reveal reveal-delay-1 rounded-2xl p-6">
+            <h2 className="text-lg font-semibold">SEO-first pages</h2>
+            <p className="muted mt-3 text-sm leading-6">
+              Structured metadata, descriptive headings, and route-level pages ready for discovery.
+            </p>
+          </article>
+        </section>
+
+        <section className="mt-8">
+          <div className="mb-4 flex items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] muted">Tool hub</p>
+              <h2 className="mt-2 text-2xl font-bold md:text-3xl">Featured tools</h2>
+            </div>
+            <Link href="/tools" className="muted text-sm font-semibold hover:text-foreground">
+              See all
+            </Link>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {featuredTools.map((tool) => (
+              <article key={tool.slug} className="glass-panel reveal reveal-delay-2 rounded-2xl p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] muted">
+                  {tool.category}
+                </p>
+                <h3 className="mt-2 text-lg font-semibold">{tool.name}</h3>
+                <p className="muted mt-2 text-sm leading-6">{tool.description}</p>
+                <p className="mt-4 text-xs font-semibold text-[var(--accent)]">{tool.status}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="glass-panel mt-8 rounded-3xl p-7 md:p-10">
+          <h2 className="text-2xl font-bold">Start with account pages and tool wrappers</h2>
+          <p className="muted mt-3 max-w-3xl leading-7">
+            This MVP includes landing, login, signup, and tools pages. Next step is wiring each
+            card to backend handlers for conversion, download, and media processing.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href="/login"
+              className="rounded-full bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white"
+            >
+              Go to login
+            </Link>
+            <Link href="/signup" className="glass-panel rounded-full px-5 py-3 text-sm font-semibold">
+              Go to sign up
+            </Link>
+          </div>
+        </section>
       </main>
+      <SiteFooter />
     </div>
   );
 }

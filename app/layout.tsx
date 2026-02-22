@@ -14,7 +14,10 @@ const ibmPlexMono = IBM_Plex_Mono({
   weight: ["400", "500"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "All In One | Daily Utility Toolkit",
     template: "%s | All In One",
@@ -34,12 +37,21 @@ export const metadata: Metadata = {
     description:
       "Use one toolkit for video, image, and document tasks. Fast workflows, clean UX, and a focused tool hub.",
     type: "website",
+    images: [{ url: "/allinone-logo.png" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "All In One | Daily Utility Toolkit",
     description:
       "A clean all-in-one utility app for everyday conversion and download workflows.",
+    images: ["/allinone-logo.png"],
+  },
+  icons: {
+    icon: [
+      { url: "/allinone-logo.png", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: "/allinone-logo.png",
   },
 };
 
