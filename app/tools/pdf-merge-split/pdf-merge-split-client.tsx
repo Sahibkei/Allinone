@@ -2,15 +2,47 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PDFDocument } from "pdf-lib";
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type Mode = "merge" | "split";
 type SplitMode = "every-page" | "custom-ranges";
+
+type MergeFileItem = {
+  id: string;
+  file: File;
+};
 
 type OutputFile = {
   id: string;
   name: string;
   url: string;
   bytes: number;
+};
+
+type SortableMergeRowProps = {
+  item: MergeFileItem;
+  index: number;
+  total: number;
+  isDisabled: boolean;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 };
 
 function formatBytes(bytes: number) {
@@ -27,6 +59,76 @@ function bytesToPdfBlob(bytes: Uint8Array) {
   const normalized = new Uint8Array(bytes.byteLength);
   normalized.set(bytes);
   return new Blob([normalized], { type: "application/pdf" });
+}
+
+function createMergeFileId(file: File, index: number) {
+  return `${file.name}-${file.lastModified}-${file.size}-${index}`;
+}
+
+function SortableMergeRow({
+  item,
+  index,
+  total,
+  isDisabled,
+  onMoveUp,
+  onMoveDown,
+}: SortableMergeRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.id,
+    disabled: isDisabled,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`surface flex items-center justify-between rounded-xl p-3 ${isDragging ? "ring-2 ring-[var(--accent)]/60" : ""}`}
+    >
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          aria-label={`Drag ${item.file.name}`}
+          className="rounded-lg border border-white/25 px-2 py-2 text-xs font-semibold hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-40"
+          disabled={isDisabled}
+          {...attributes}
+          {...listeners}
+        >
+          <span className="grid grid-cols-3 gap-1 text-[var(--muted)]" aria-hidden="true">
+            <span className="h-1 w-1 rounded-full bg-current" />
+            <span className="h-1 w-1 rounded-full bg-current" />
+            <span className="h-1 w-1 rounded-full bg-current" />
+            <span className="h-1 w-1 rounded-full bg-current" />
+            <span className="h-1 w-1 rounded-full bg-current" />
+            <span className="h-1 w-1 rounded-full bg-current" />
+          </span>
+        </button>
+        <p className="truncate text-sm">{item.file.name}</p>
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onMoveUp}
+          disabled={index === 0}
+          className="rounded-full border border-white/25 px-2 py-1 text-xs hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Up
+        </button>
+        <button
+          type="button"
+          onClick={onMoveDown}
+          disabled={index === total - 1}
+          className="rounded-full border border-white/25 px-2 py-1 text-xs hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Down
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function parseCustomRanges(input: string, totalPages: number) {
@@ -60,7 +162,7 @@ function parseCustomRanges(input: string, totalPages: number) {
 export function PdfMergeSplitClient() {
   const objectUrlsRef = useRef<string[]>([]);
   const [mode, setMode] = useState<Mode>("merge");
-  const [mergeFiles, setMergeFiles] = useState<File[]>([]);
+  const [mergeFiles, setMergeFiles] = useState<MergeFileItem[]>([]);
   const [splitFile, setSplitFile] = useState<File | null>(null);
   const [splitMode, setSplitMode] = useState<SplitMode>("every-page");
   const [rangeInput, setRangeInput] = useState("1-2, 3-4");
@@ -71,6 +173,17 @@ export function PdfMergeSplitClient() {
   const [errorText, setErrorText] = useState("");
 
   const hasOutputs = useMemo(() => outputFiles.length > 0, [outputFiles.length]);
+  const mergeSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 180, tolerance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   function clearObjectUrls() {
     objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
@@ -110,7 +223,7 @@ export function PdfMergeSplitClient() {
     try {
       const mergedPdf = await PDFDocument.create();
       for (let index = 0; index < mergeFiles.length; index += 1) {
-        const file = mergeFiles[index];
+        const file = mergeFiles[index].file;
         const sourcePdf = await PDFDocument.load(await file.arrayBuffer());
         const copiedPages = await mergedPdf.copyPages(sourcePdf, sourcePdf.getPageIndices());
         copiedPages.forEach((page) => mergedPdf.addPage(page));
@@ -205,11 +318,27 @@ export function PdfMergeSplitClient() {
   }
 
   function moveMergeFile(fromIndex: number, toIndex: number) {
-    if (toIndex < 0 || toIndex >= mergeFiles.length) return;
-    const next = [...mergeFiles];
-    const [moved] = next.splice(fromIndex, 1);
-    next.splice(toIndex, 0, moved);
-    setMergeFiles(next);
+    setMergeFiles((currentFiles) => {
+      if (toIndex < 0 || toIndex >= currentFiles.length) return currentFiles;
+      const next = [...currentFiles];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
+  }
+
+  function onMergeDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setMergeFiles((currentFiles) => {
+      const oldIndex = currentFiles.findIndex((item) => item.id === active.id);
+      const newIndex = currentFiles.findIndex((item) => item.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) {
+        return currentFiles;
+      }
+      return arrayMove(currentFiles, oldIndex, newIndex);
+    });
   }
 
   return (
@@ -248,7 +377,14 @@ export function PdfMergeSplitClient() {
                 type="file"
                 accept="application/pdf"
                 multiple
-                onChange={(event) => setMergeFiles(Array.from(event.target.files ?? []))}
+                onChange={(event) =>
+                  setMergeFiles(
+                    Array.from(event.target.files ?? []).map((file, index) => ({
+                      id: createMergeFileId(file, index),
+                      file,
+                    })),
+                  )
+                }
                 className="surface w-full rounded-xl border border-white/30 px-3 py-3 text-sm"
               />
             </label>
@@ -256,27 +392,31 @@ export function PdfMergeSplitClient() {
             {!!mergeFiles.length && (
               <div className="space-y-2">
                 <p className="text-sm font-semibold">Merge order</p>
-                {mergeFiles.map((file, index) => (
-                  <div key={`${file.name}-${index}`} className="surface flex items-center justify-between rounded-xl p-3">
-                    <p className="truncate text-sm">{file.name}</p>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => moveMergeFile(index, index - 1)}
-                        className="rounded-full border border-white/25 px-2 py-1 text-xs"
-                      >
-                        Up
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveMergeFile(index, index + 1)}
-                        className="rounded-full border border-white/25 px-2 py-1 text-xs"
-                      >
-                        Down
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                <p className="muted text-xs">
+                  Hold and drag a file to reorder. Up/Down buttons still work for precise steps.
+                </p>
+                <DndContext
+                  sensors={mergeSensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={onMergeDragEnd}
+                >
+                  <SortableContext
+                    items={mergeFiles.map((item) => item.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {mergeFiles.map((file, index) => (
+                      <SortableMergeRow
+                        key={file.id}
+                        item={file}
+                        index={index}
+                        total={mergeFiles.length}
+                        isDisabled={isProcessing}
+                        onMoveUp={() => moveMergeFile(index, index - 1)}
+                        onMoveDown={() => moveMergeFile(index, index + 1)}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
               </div>
             )}
 
