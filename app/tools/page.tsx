@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { MainNav } from "@/components/main-nav";
 import { SiteFooter } from "@/components/site-footer";
+import { getCurrentUserFromSession } from "@/lib/server-auth";
 import { tools } from "@/lib/tools";
 
 export const metadata: Metadata = {
@@ -10,9 +11,46 @@ export const metadata: Metadata = {
     "Browse the Phase 1 All In One toolkit: image compression, HEIC conversion, and core PDF utilities.",
 };
 
-export default function ToolsPage() {
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "How do I compress images without losing too much quality?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Use the Image Compressor with the Balanced preset, then adjust target size as needed.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Can I convert HEIC photos to JPG or PNG online?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Open HEIC to JPG/PNG, upload your files, choose format, and download converted images.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What PDF tools are available in All In One?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "You can merge and split PDFs, convert images to PDF, and rotate/reorder PDF pages.",
+      },
+    },
+  ],
+};
+
+export default async function ToolsPage() {
+  const sessionUser = await getCurrentUserFromSession();
+
   return (
     <div className="grid-lines min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <MainNav />
       <main className="site-shell mt-10 pb-12">
         <section className="glass-panel rounded-3xl p-7 md:p-10">
@@ -45,23 +83,67 @@ export default function ToolsPage() {
           ))}
         </section>
 
-        <section className="glass-panel mt-8 rounded-3xl p-7 md:p-10">
-          <h2 className="text-2xl font-bold">Need account access?</h2>
-          <p className="muted mt-3 leading-7">
-            Login and signup flows are already scaffolded and ready for authentication integration.
-          </p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link
-              href="/login"
-              className="btn-primary px-5 py-3 text-sm"
-            >
-              Go to login
-            </Link>
-            <Link href="/signup" className="btn-secondary glass-panel border px-5 py-3 text-sm">
-              Go to signup
-            </Link>
-          </div>
-        </section>
+        {sessionUser ? (
+          <section className="glass-panel mt-8 rounded-3xl p-7 md:p-10">
+            <h2 className="text-2xl font-bold">Popular Guides And FAQs</h2>
+            <p className="muted mt-3 leading-7">
+              Welcome back, {sessionUser.name}. Here are quick paths users search most often for
+              image compression, HEIC conversion, and PDF editing workflows.
+            </p>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              <article className="surface rounded-2xl p-4">
+                <h3 className="text-sm font-semibold">Best image size reduction workflow</h3>
+                <p className="muted mt-2 text-sm">
+                  Start with balanced quality in{" "}
+                  <Link href="/tools/image-compressor" className="text-[var(--accent)] underline">
+                    Image Compressor
+                  </Link>{" "}
+                  for social media and web uploads.
+                </p>
+              </article>
+              <article className="surface rounded-2xl p-4">
+                <h3 className="text-sm font-semibold">Convert iPhone HEIC to JPG/PNG</h3>
+                <p className="muted mt-2 text-sm">
+                  Use{" "}
+                  <Link href="/tools/heic-to-jpg-png" className="text-[var(--accent)] underline">
+                    HEIC to JPG / PNG
+                  </Link>{" "}
+                  for quick compatibility with apps and websites.
+                </p>
+              </article>
+              <article className="surface rounded-2xl p-4">
+                <h3 className="text-sm font-semibold">Merge and reorder PDF files fast</h3>
+                <p className="muted mt-2 text-sm">
+                  Combine pages in{" "}
+                  <Link href="/tools/pdf-merge-split" className="text-[var(--accent)] underline">
+                    PDF Merge + Split
+                  </Link>{" "}
+                  and refine order in{" "}
+                  <Link href="/tools/pdf-rotate-reorder" className="text-[var(--accent)] underline">
+                    PDF Rotate + Reorder
+                  </Link>
+                  .
+                </p>
+              </article>
+            </div>
+          </section>
+        ) : (
+          <section className="glass-panel mt-8 rounded-3xl p-7 md:p-10">
+            <h2 className="text-2xl font-bold">Need account access?</h2>
+            <p className="muted mt-3 leading-7">
+              Create an account to keep access stable as we expand image and PDF tools.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Link href="/login" className="btn-primary px-5 py-3 text-sm">
+                Go to login
+              </Link>
+              <Link href="/signup" className="btn-secondary glass-panel border px-5 py-3 text-sm">
+                Go to signup
+              </Link>
+            </div>
+          </section>
+        )}
       </main>
       <SiteFooter />
     </div>

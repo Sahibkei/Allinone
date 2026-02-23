@@ -1,15 +1,25 @@
 import Image from "next/image";
 import Link from "next/link";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { getCurrentUserFromSession } from "@/lib/server-auth";
 
-const links = [
+const publicLinks = [
   { href: "/", label: "Home" },
   { href: "/tools", label: "Tools" },
   { href: "/login", label: "Log In" },
   { href: "/signup", label: "Sign Up" },
 ];
 
-export function MainNav() {
+const privateLinks = [
+  { href: "/", label: "Home" },
+  { href: "/tools", label: "Tools" },
+];
+
+export async function MainNav() {
+  const sessionUser = await getCurrentUserFromSession();
+  const links = sessionUser ? privateLinks : publicLinks;
+
   return (
     <header className="pt-6">
       <div className="site-shell">
@@ -40,6 +50,7 @@ export function MainNav() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
+            {sessionUser && <LogoutButton />}
             <Link href="/tools" className="btn-primary px-3 py-2 text-xs font-semibold">
               Open Hub
             </Link>
@@ -56,6 +67,7 @@ export function MainNav() {
               {link.label}
             </Link>
           ))}
+          {sessionUser && <LogoutButton mobile />}
         </nav>
       </div>
     </header>

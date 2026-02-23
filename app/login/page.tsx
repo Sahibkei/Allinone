@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
+import { LoginForm } from "@/components/auth/login-form";
 import { MainNav } from "@/components/main-nav";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -20,30 +22,9 @@ export default function LoginPage() {
             Sign in to continue using your saved tool presets and conversion history.
           </p>
 
-          <form className="mt-6 space-y-4">
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium">Email</span>
-              <input
-                type="email"
-                placeholder="you@example.com"
-                className="surface w-full rounded-xl border border-white/30 px-4 py-3 outline-none focus:border-[var(--accent)]"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-2 block text-sm font-medium">Password</span>
-              <input
-                type="password"
-                placeholder="Your password"
-                className="surface w-full rounded-xl border border-white/30 px-4 py-3 outline-none focus:border-[var(--accent)]"
-              />
-            </label>
-            <button
-              type="submit"
-              className="btn-primary w-full px-4 py-3 text-sm"
-            >
-              Log in
-            </button>
-          </form>
+          <Suspense fallback={<p className="muted mt-6 text-sm">Loading login form...</p>}>
+            <LoginForm />
+          </Suspense>
 
           <p className="muted mt-4 text-sm">
             New here?{" "}
