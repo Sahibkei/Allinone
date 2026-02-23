@@ -2,6 +2,11 @@ import { createHash, randomBytes } from "node:crypto";
 import { MongoServerError } from "mongodb";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import {
+  isMongoConnectivityError,
+  isSmtpDeliveryError,
+  summarizeError,
+} from "@/lib/auth-error-utils";
 import { hashPassword } from "@/lib/auth";
 import { sendVerificationEmail } from "@/lib/mailer";
 import { getUsersCollection } from "@/lib/user-store";
@@ -37,7 +42,7 @@ export async function POST(request: Request) {
     const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     const now = new Date();
 
-    await users.insertOne({
+    const insertResult = await users.insertOne({
       name,
       email,
       emailLower,
@@ -49,11 +54,20 @@ export async function POST(request: Request) {
       updatedAt: now,
     });
 
-    const mailResult = await sendVerificationEmail({
-      to: email,
-      name,
-      token: verificationToken,
-    });
+    let mailResult: Awaited<ReturnType<typeof sendVerificationEmail>>;
+    try {
+      mailResult = await sendVerificationEmail({
+        to: email,
+        name,
+        token: verificationToken,
+      });
+    } catch (mailError) {
+      // Avoid leaving an unverified user stranded if email delivery fails.
+      await users.deleteOne({ _id: insertResult.insertedId }).catch((rollbackError) => {
+        console.error("[auth/signup] rollback failed:", summarizeError(rollbackError));
+      });
+      throw mailError;
+    }
 
     return NextResponse.json(
       mailResult.delivered
@@ -72,21 +86,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Email is already registered." }, { status: 409 });
     }
 
-    if (error instanceof Error) {
-      const message = error.message.toLowerCase();
-      if (
-        message.includes("smtp") ||
-        message.includes("auth") ||
-        message.includes("connection") ||
-        message.includes("mongo")
-      ) {
-        return NextResponse.json(
-          {
-            message: `Signup failed due to server configuration: ${error.message}`,
-          },
-          { status: 500 },
-        );
-      }
+    console.error("[auth/signup] failed:", summarizeError(error));
+
+    if (isMongoConnectivityError(error)) {
+      return NextResponse.json(
+        {
+          message:
+            "Signup failed due to a database connection issue. Check MONGODB_URI and Atlas Network Access.",
+        },
+        { status: 500 },
+      );
+    }
+
+    if (isSmtpDeliveryError(error)) {
+      return NextResponse.json(
+        {
+          message:
+            "Signup failed because email delivery is not configured correctly. Check SMTP settings in Vercel.",
+        },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json(

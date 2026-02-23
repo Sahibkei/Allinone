@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { z } from "zod";
+import { isMongoConnectivityError, summarizeError } from "@/lib/auth-error-utils";
 import {
   SESSION_COOKIE_NAME,
   SESSION_MAX_AGE_SECONDS,
@@ -79,7 +80,18 @@ export async function POST(request: Request) {
     });
     return response;
   } catch (error) {
-    console.error("[auth/login] failed:", error);
+    console.error("[auth/login] failed:", summarizeError(error));
+
+    if (isMongoConnectivityError(error)) {
+      return NextResponse.json(
+        {
+          message:
+            "Unable to log in due to a database connection issue. Check MONGODB_URI and Atlas Network Access.",
+        },
+        { status: 500 },
+      );
+    }
+
     return NextResponse.json({ message: "Unable to log in right now." }, { status: 500 });
   }
 }

@@ -21,13 +21,18 @@ export async function getUsersCollection(): Promise<Collection<UserDocument>> {
   const users = db.collection<UserDocument>("users");
 
   if (!indexesReady) {
-    await Promise.all([
-      users.createIndex({ emailLower: 1 }, { unique: true, name: "email_lower_unique" }),
-      users.createIndex(
-        { verificationTokenHash: 1 },
-        { sparse: true, name: "verification_token_hash_idx" },
-      ),
-    ]);
+    try {
+      await Promise.all([
+        users.createIndex({ emailLower: 1 }, { unique: true, name: "email_lower_unique" }),
+        users.createIndex(
+          { verificationTokenHash: 1 },
+          { sparse: true, name: "verification_token_hash_idx" },
+        ),
+      ]);
+    } catch (error) {
+      // Keep auth alive even when index creation is blocked in a deployment environment.
+      console.error("[user-store] index setup failed:", error);
+    }
     indexesReady = true;
   }
 
