@@ -3,10 +3,20 @@ import { MongoClient } from "mongodb";
 let cachedClientPromise: Promise<MongoClient> | null = null;
 
 function getMongoUri() {
-  const uri = process.env.MONGODB_URI;
-  if (!uri) {
+  const rawUri = process.env.MONGODB_URI;
+  if (!rawUri) {
     throw new Error("Missing MONGODB_URI environment variable.");
   }
+
+  const uri = rawUri.trim().replace(/^['"]|['"]$/g, "");
+  if (!uri.startsWith("mongodb://") && !uri.startsWith("mongodb+srv://")) {
+    throw new Error("MONGODB_URI must start with mongodb:// or mongodb+srv://.");
+  }
+
+  if (uri.includes("<") || uri.includes(">")) {
+    throw new Error("MONGODB_URI still contains placeholder values.");
+  }
+
   return uri;
 }
 
@@ -15,8 +25,16 @@ export async function getMongoClient() {
     return cachedClientPromise;
   }
 
-  const client = new MongoClient(getMongoUri());
-  cachedClientPromise = client.connect();
+  const client = new MongoClient(getMongoUri(), {
+    serverSelectionTimeoutMS: 10000,
+  });
+
+  cachedClientPromise = client.connect().catch((error) => {
+    // Allow the next request to retry if the first connection attempt failed.
+    cachedClientPromise = null;
+    throw error;
+  });
+
   return cachedClientPromise;
 }
 
