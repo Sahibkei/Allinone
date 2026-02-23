@@ -29,10 +29,18 @@ async function getSessionsCollection(): Promise<Collection<SessionDocument>> {
   const sessions = db.collection<SessionDocument>("sessions");
 
   if (!indexesReady) {
-    await Promise.all([
-      sessions.createIndex({ tokenHash: 1 }, { unique: true, name: "session_token_hash_unique" }),
-      sessions.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0, name: "session_expiry_ttl" }),
-    ]);
+    try {
+      await Promise.all([
+        sessions.createIndex({ tokenHash: 1 }, { unique: true, name: "session_token_hash_unique" }),
+        sessions.createIndex(
+          { expiresAt: 1 },
+          { expireAfterSeconds: 0, name: "session_expiry_ttl" },
+        ),
+      ]);
+    } catch (error) {
+      // Never block auth flows if index creation fails in a restricted deployment.
+      console.error("[session-store] index setup failed:", error);
+    }
     indexesReady = true;
   }
 
@@ -90,4 +98,9 @@ export async function deleteSessionByToken(token: string) {
   const tokenHash = hashToken(token);
   const sessions = await getSessionsCollection();
   await sessions.deleteOne({ tokenHash });
+}
+
+export async function deleteSessionsByUserId(userId: ObjectId) {
+  const sessions = await getSessionsCollection();
+  await sessions.deleteMany({ userId });
 }

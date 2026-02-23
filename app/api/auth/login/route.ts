@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { z } from "zod";
 import {
   SESSION_COOKIE_NAME,
   SESSION_MAX_AGE_SECONDS,
   verifyPassword,
 } from "@/lib/auth";
-import { createSession } from "@/lib/session-store";
+import { createSession, deleteSessionByToken, deleteSessionsByUserId } from "@/lib/session-store";
 import { getUsersCollection } from "@/lib/user-store";
 
 const loginSchema = z.object({
@@ -15,6 +16,14 @@ const loginSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const cookieStore = await cookies();
+    const existingToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+    if (existingToken) {
+      await deleteSessionByToken(existingToken).catch(() => {
+        // Ignore stale/invalid old session cleanup failures.
+      });
+    }
+
     const body = await request.json();
     const parsed = loginSchema.safeParse(body);
 
@@ -42,6 +51,11 @@ export async function POST(request: Request) {
       );
     }
 
+    // Rotate sessions on each login to guarantee a new active session.
+    await deleteSessionsByUserId(user._id).catch(() => {
+      // Non-blocking cleanup in case old sessions cannot be deleted.
+    });
+
     const session = await createSession({
       userId: user._id,
       email: user.emailLower,
@@ -64,7 +78,8 @@ export async function POST(request: Request) {
       maxAge: SESSION_MAX_AGE_SECONDS,
     });
     return response;
-  } catch {
+  } catch (error) {
+    console.error("[auth/login] failed:", error);
     return NextResponse.json({ message: "Unable to log in right now." }, { status: 500 });
   }
 }
