@@ -7,6 +7,7 @@ import { getCurrentUserFromSession } from "@/lib/server-auth";
 const publicLinks = [
   { href: "/", label: "Home" },
   { href: "/tools", label: "Tools" },
+  { href: "/pricing", label: "Pricing" },
   { href: "/login", label: "Log In" },
   { href: "/signup", label: "Sign Up" },
 ];
@@ -14,6 +15,7 @@ const publicLinks = [
 const privateLinks = [
   { href: "/", label: "Home" },
   { href: "/tools", label: "Tools" },
+  { href: "/pricing", label: "Pricing" },
 ];
 
 export async function MainNav() {
