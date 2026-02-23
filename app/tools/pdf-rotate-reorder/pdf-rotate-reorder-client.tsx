@@ -2,6 +2,24 @@
 
 import { useMemo, useState } from "react";
 import { PDFDocument, degrees } from "pdf-lib";
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type PageItem = {
   id: string;
@@ -13,6 +31,17 @@ type GeneratedOutput = {
   name: string;
   url: string;
   bytes: number;
+};
+
+type SortablePageRowProps = {
+  item: PageItem;
+  index: number;
+  total: number;
+  isDisabled: boolean;
+  onRotateLeft: () => void;
+  onRotateRight: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
 };
 
 function formatBytes(bytes: number) {
@@ -27,6 +56,93 @@ function bytesToPdfBlob(bytes: Uint8Array) {
   return new Blob([normalized], { type: "application/pdf" });
 }
 
+function SortablePageRow({
+  item,
+  index,
+  total,
+  isDisabled,
+  onRotateLeft,
+  onRotateRight,
+  onMoveUp,
+  onMoveDown,
+}: SortablePageRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.id,
+    disabled: isDisabled,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <article
+      ref={setNodeRef}
+      style={style}
+      className={`surface flex items-center justify-between rounded-xl p-3 ${isDragging ? "ring-2 ring-[var(--accent)]/60" : ""}`}
+    >
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          aria-label={`Drag Page ${item.sourceIndex + 1}`}
+          className="rounded-lg border border-white/25 px-2 py-2 text-xs font-semibold hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-40"
+          disabled={isDisabled}
+          {...attributes}
+          {...listeners}
+        >
+          <span className="grid grid-cols-3 gap-1 text-[var(--muted)]" aria-hidden="true">
+            <span className="h-1 w-1 rounded-full bg-current" />
+            <span className="h-1 w-1 rounded-full bg-current" />
+            <span className="h-1 w-1 rounded-full bg-current" />
+            <span className="h-1 w-1 rounded-full bg-current" />
+            <span className="h-1 w-1 rounded-full bg-current" />
+            <span className="h-1 w-1 rounded-full bg-current" />
+          </span>
+        </button>
+        <div>
+          <p className="text-sm font-semibold">Page {item.sourceIndex + 1}</p>
+          <p className="muted text-xs">
+            Rotation: {item.rotation}deg | Position {index + 1}/{total}
+          </p>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onRotateLeft}
+          className="rounded-full border border-white/25 px-2 py-1 text-xs hover:border-[var(--accent)]"
+        >
+          Left
+        </button>
+        <button
+          type="button"
+          onClick={onRotateRight}
+          className="rounded-full border border-white/25 px-2 py-1 text-xs hover:border-[var(--accent)]"
+        >
+          Right
+        </button>
+        <button
+          type="button"
+          onClick={onMoveUp}
+          disabled={index === 0}
+          className="rounded-full border border-white/25 px-2 py-1 text-xs hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Up
+        </button>
+        <button
+          type="button"
+          onClick={onMoveDown}
+          disabled={index === total - 1}
+          className="rounded-full border border-white/25 px-2 py-1 text-xs hover:border-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Down
+        </button>
+      </div>
+    </article>
+  );
+}
+
 export function PdfRotateReorderClient() {
   const [fileName, setFileName] = useState("");
   const [sourcePdfBytes, setSourcePdfBytes] = useState<Uint8Array | null>(null);
@@ -37,6 +153,17 @@ export function PdfRotateReorderClient() {
   const [generatedOutput, setGeneratedOutput] = useState<GeneratedOutput | null>(null);
 
   const hasPages = useMemo(() => pages.length > 0, [pages.length]);
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 180, tolerance: 8 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   function clearOutputUrl() {
     if (generatedOutput?.url) {
@@ -71,19 +198,38 @@ export function PdfRotateReorderClient() {
   }
 
   function movePage(fromIndex: number, toIndex: number) {
-    if (toIndex < 0 || toIndex >= pages.length) return;
-    const next = [...pages];
-    const [moved] = next.splice(fromIndex, 1);
-    next.splice(toIndex, 0, moved);
-    setPages(next);
+    setPages((currentPages) => {
+      if (toIndex < 0 || toIndex >= currentPages.length) return currentPages;
+      const next = [...currentPages];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
   }
 
   function rotatePage(index: number, delta: number) {
-    const next = [...pages];
-    const current = next[index];
-    const normalized = ((current.rotation + delta) % 360 + 360) % 360;
-    next[index] = { ...current, rotation: normalized };
-    setPages(next);
+    setPages((currentPages) => {
+      const next = [...currentPages];
+      const current = next[index];
+      if (!current) return currentPages;
+      const normalized = ((current.rotation + delta) % 360 + 360) % 360;
+      next[index] = { ...current, rotation: normalized };
+      return next;
+    });
+  }
+
+  function onDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setPages((currentPages) => {
+      const oldIndex = currentPages.findIndex((item) => item.id === active.id);
+      const newIndex = currentPages.findIndex((item) => item.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) {
+        return currentPages;
+      }
+      return arrayMove(currentPages, oldIndex, newIndex);
+    });
   }
 
   function resetAll() {
@@ -187,49 +333,31 @@ export function PdfRotateReorderClient() {
 
       <section className="glass-panel rounded-3xl p-6 md:p-8">
         <h3 className="text-xl font-bold">Page list</h3>
+        <p className="muted mt-2 text-xs">
+          Hold and drag any row to reorder. Up/Down buttons still work for precise steps.
+        </p>
         {!hasPages && <p className="muted mt-4 text-sm">No PDF loaded yet.</p>}
 
         {!!hasPages && (
-          <div className="mt-4 space-y-2">
-            {pages.map((item, index) => (
-              <article key={item.id} className="surface flex items-center justify-between rounded-xl p-3">
-                <div>
-                  <p className="text-sm font-semibold">Page {item.sourceIndex + 1}</p>
-                  <p className="muted text-xs">Rotation: {item.rotation}°</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => rotatePage(index, -90)}
-                    className="rounded-full border border-white/25 px-2 py-1 text-xs"
-                  >
-                    Left
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => rotatePage(index, 90)}
-                    className="rounded-full border border-white/25 px-2 py-1 text-xs"
-                  >
-                    Right
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => movePage(index, index - 1)}
-                    className="rounded-full border border-white/25 px-2 py-1 text-xs"
-                  >
-                    Up
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => movePage(index, index + 1)}
-                    className="rounded-full border border-white/25 px-2 py-1 text-xs"
-                  >
-                    Down
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={pages.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+              <div className="mt-4 space-y-2">
+                {pages.map((item, index) => (
+                  <SortablePageRow
+                    key={item.id}
+                    item={item}
+                    index={index}
+                    total={pages.length}
+                    isDisabled={isProcessing}
+                    onRotateLeft={() => rotatePage(index, -90)}
+                    onRotateRight={() => rotatePage(index, 90)}
+                    onMoveUp={() => movePage(index, index - 1)}
+                    onMoveDown={() => movePage(index, index + 1)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </section>
 
