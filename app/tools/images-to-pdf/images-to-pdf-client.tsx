@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { PDFDocument } from "pdf-lib";
+import { UsagePaywallModal } from "@/components/usage/usage-paywall-modal";
+import { useUsageGuard } from "@/hooks/use-usage-guard";
 
 type PagePreset = "a4" | "letter" | "original";
 type OrientationMode = "auto" | "portrait" | "landscape";
@@ -91,6 +93,7 @@ export function ImagesToPdfClient() {
   const [statusText, setStatusText] = useState("");
   const [errorText, setErrorText] = useState("");
   const [generatedOutput, setGeneratedOutput] = useState<GeneratedOutput | null>(null);
+  const { blockedState, consumeUsage, closeBlockedModal } = useUsageGuard();
 
   const hasQueue = useMemo(() => queue.length > 0, [queue.length]);
 
@@ -128,6 +131,9 @@ export function ImagesToPdfClient() {
 
   async function createPdf() {
     if (!queue.length || isProcessing) return;
+    const canUse = await consumeUsage("images-to-pdf");
+    if (!canUse) return;
+
     setIsProcessing(true);
     setErrorText("");
     setStatusText("Generating PDF...");
@@ -344,6 +350,13 @@ export function ImagesToPdfClient() {
           </article>
         )}
       </section>
+      <UsagePaywallModal
+        open={blockedState.open}
+        reason={blockedState.reason}
+        remaining={blockedState.remaining}
+        resetAt={blockedState.resetAt}
+        onClose={closeBlockedModal}
+      />
     </div>
   );
 }

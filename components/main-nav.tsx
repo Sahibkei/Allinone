@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { getEntitlementSnapshot, getUserById, toPlanLabel } from "@/lib/entitlements";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getCurrentUserFromSession } from "@/lib/server-auth";
 
@@ -21,6 +22,10 @@ const privateLinks = [
 export async function MainNav() {
   const sessionUser = await getCurrentUserFromSession();
   const links = sessionUser ? privateLinks : publicLinks;
+  const entitlement = sessionUser?.id
+    ? getEntitlementSnapshot(await getUserById(sessionUser.id))
+    : getEntitlementSnapshot(null);
+  const planLabel = sessionUser ? toPlanLabel(entitlement) : "Guest";
 
   return (
     <header className="pt-6">
@@ -51,6 +56,9 @@ export async function MainNav() {
           </nav>
 
           <div className="flex items-center gap-2">
+            <span className="rounded-full border border-white/25 px-3 py-2 text-xs font-semibold muted">
+              {planLabel}
+            </span>
             <ThemeToggle />
             {sessionUser && <LogoutButton />}
             <Link href="/tools" className="btn-primary px-3 py-2 text-xs font-semibold">
