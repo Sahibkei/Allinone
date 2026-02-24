@@ -21,6 +21,9 @@ function getRequiredPriceId(plan: "day_pass" | "pro_monthly" | "pro_yearly") {
   if (!value) {
     throw new Error(`Missing Stripe price id for plan: ${plan}`);
   }
+  if (!value.startsWith("price_")) {
+    throw new Error(`Invalid Stripe price id for plan ${plan}. Expected value starting with 'price_'.`);
+  }
   return value;
 }
 
@@ -57,56 +60,62 @@ async function ensureStripeCustomerId(params: { userId: string; name: string; em
 }
 
 export async function POST(request: Request) {
-  const sessionUser = await getCurrentUserFromSession();
-  if (!sessionUser?.id) {
-    return NextResponse.json({ message: "Please log in before starting checkout." }, { status: 401 });
-  }
+  try {
+    const sessionUser = await getCurrentUserFromSession();
+    if (!sessionUser?.id) {
+      return NextResponse.json({ message: "Please log in before starting checkout." }, { status: 401 });
+    }
 
-  const body = await request.json().catch(() => null);
-  const parsed = bodySchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ message: "Invalid checkout request." }, { status: 400 });
-  }
+    const body = await request.json().catch(() => null);
+    const parsed = bodySchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ message: "Invalid checkout request." }, { status: 400 });
+    }
 
-  const user = await getUserById(sessionUser.id);
-  if (!user || !user._id) {
-    return NextResponse.json({ message: "User not found." }, { status: 404 });
-  }
+    const user = await getUserById(sessionUser.id);
+    if (!user || !user._id) {
+      return NextResponse.json({ message: "User not found." }, { status: 404 });
+    }
 
-  const stripeCustomerId = await ensureStripeCustomerId({
-    userId: user._id.toString(),
-    name: user.name,
-    email: user.emailLower,
-    existing: user.stripeCustomerId,
-  });
+    const stripeCustomerId = await ensureStripeCustomerId({
+      userId: user._id.toString(),
+      name: user.name,
+      email: user.emailLower,
+      existing: user.stripeCustomerId,
+    });
 
-  const priceId = getRequiredPriceId(parsed.data.plan);
-  const stripe = getStripe();
-  const appUrl = getAppUrl();
-  const mode = parsed.data.plan === "day_pass" ? "payment" : "subscription";
+    const priceId = getRequiredPriceId(parsed.data.plan);
+    const stripe = getStripe();
+    const appUrl = getAppUrl();
+    const mode = parsed.data.plan === "day_pass" ? "payment" : "subscription";
 
-  const checkoutSession = await stripe.checkout.sessions.create({
-    mode,
-    customer: stripeCustomerId,
-    line_items: [
-      {
-        price: priceId,
-        quantity: 1,
+    const checkoutSession = await stripe.checkout.sessions.create({
+      mode,
+      customer: stripeCustomerId,
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      success_url: `${appUrl}/pricing?checkout=success`,
+      cancel_url: `${appUrl}/pricing?checkout=canceled`,
+      metadata: {
+        appUserId: user._id.toString(),
+        appUserEmail: user.emailLower,
+        requestedPlan: parsed.data.plan,
       },
-    ],
-    success_url: `${appUrl}/pricing?checkout=success`,
-    cancel_url: `${appUrl}/pricing?checkout=canceled`,
-    metadata: {
-      appUserId: user._id.toString(),
-      appUserEmail: user.emailLower,
-      requestedPlan: parsed.data.plan,
-    },
-    client_reference_id: user._id.toString(),
-  });
+      client_reference_id: user._id.toString(),
+    });
 
-  if (!checkoutSession.url) {
-    return NextResponse.json({ message: "Could not create checkout session." }, { status: 500 });
+    if (!checkoutSession.url) {
+      return NextResponse.json({ message: "Could not create checkout session." }, { status: 500 });
+    }
+
+    return NextResponse.json({ url: checkoutSession.url });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unexpected checkout error.";
+    console.error("[stripe/checkout] failed:", message);
+    return NextResponse.json({ message }, { status: 500 });
   }
-
-  return NextResponse.json({ url: checkoutSession.url });
 }
