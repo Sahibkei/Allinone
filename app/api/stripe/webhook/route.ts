@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import {
   applyEntitlementByEmailOrCreatePending,
+  applyEntitlementToUserById,
   beginStripeEventProcessing,
   expireDayPassByStripeCustomer,
+  getUserById,
   mapStripePriceIdToPlan,
   markStripeEventProcessed,
   updateUserEntitlementByStripeRefs,
@@ -56,6 +58,20 @@ async function handleCheckoutCompleted(event: Stripe.Event, session: Stripe.Chec
   const entitlement = mapStripePriceIdToPlan(priceId, purchasedAt);
   if (!entitlement) {
     return;
+  }
+
+  const metadataUserId = session.metadata?.appUserId ?? null;
+  if (metadataUserId) {
+    const user = await getUserById(metadataUserId);
+    if (user?._id) {
+      // Checkout session is created from logged-in context; enforce that identity first.
+      await applyEntitlementToUserById(user._id, {
+        ...entitlement,
+        stripeCustomerId: toStripeId(session.customer),
+        stripeSubscriptionId: toStripeId(session.subscription),
+      });
+      return;
+    }
   }
 
   await applyEntitlementByEmailOrCreatePending({
