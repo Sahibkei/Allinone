@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Plan = {
@@ -34,33 +34,49 @@ export function PricingCards({ plans }: PricingCardsProps) {
     setSearchParams(new URLSearchParams(window.location.search));
   }, []);
 
-  useEffect(() => {
-    let active = true;
+  const loadEntitlement = useCallback(async () => {
+    try {
+      const response = await fetch("/api/me/entitlement", { cache: "no-store" });
+      if (!response.ok) {
+        return null;
+      }
+      const payload = (await response.json()) as EntitlementPayload;
+      setEntitlement(payload);
+      return payload;
+    } catch {
+      // Ignore transient fetch errors on pricing view.
+      return null;
+    } finally {
+      setEntitlementLoaded(true);
+    }
+  }, []);
 
-    async function loadEntitlement() {
+  useEffect(() => {
+    void loadEntitlement();
+  }, [loadEntitlement]);
+
+  useEffect(() => {
+    if (!searchParams || searchParams.get("checkout") !== "success") {
+      return;
+    }
+
+    let cancelled = false;
+    async function reconcileAfterSuccessReturn() {
       try {
-        const response = await fetch("/api/me/entitlement", { cache: "no-store" });
-        if (!response.ok) {
-          return;
-        }
-        const payload = (await response.json()) as EntitlementPayload;
-        if (active) {
-          setEntitlement(payload);
-        }
+        await fetch("/api/stripe/reconcile", { method: "POST" });
       } catch {
-        // Ignore transient fetch errors on pricing view.
-      } finally {
-        if (active) {
-          setEntitlementLoaded(true);
-        }
+        // ignore and rely on webhook path
+      }
+      if (!cancelled) {
+        await loadEntitlement();
       }
     }
 
-    loadEntitlement();
+    void reconcileAfterSuccessReturn();
     return () => {
-      active = false;
+      cancelled = true;
     };
-  }, []);
+  }, [searchParams, loadEntitlement]);
 
   const hasActivePaidPlan = useMemo(() => {
     if (!entitlement || !entitlement.authenticated) {
