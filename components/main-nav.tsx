@@ -22,10 +22,16 @@ const privateLinks = [
 export async function MainNav() {
   const sessionUser = await getCurrentUserFromSession();
   const links = sessionUser ? privateLinks : publicLinks;
-  const entitlement = sessionUser?.id
-    ? getEntitlementSnapshot(await getUserById(sessionUser.id))
-    : getEntitlementSnapshot(null);
-  const planLabel = sessionUser ? toPlanLabel(entitlement) : "Guest";
+  const dbUser = sessionUser?.id ? await getUserById(sessionUser.id) : null;
+  const entitlement = getEntitlementSnapshot(dbUser);
+  const hasActiveStripeSubscription =
+    !!dbUser?.stripeSubscriptionId &&
+    (dbUser?.planStatus ?? "active") === "active";
+  const planLabel = sessionUser
+    ? hasActiveStripeSubscription && entitlement.plan === "free"
+      ? "Pro"
+      : toPlanLabel(entitlement)
+    : "Guest";
 
   return (
     <header className="pt-6">
