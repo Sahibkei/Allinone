@@ -27,8 +27,17 @@ function getRequiredPriceId(plan: "day_pass" | "pro_monthly" | "pro_yearly") {
   return value;
 }
 
-function getAppUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+function getRequestOrigin(request: Request) {
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  try {
+    const requestUrl = new URL(request.url);
+    if (requestUrl.origin) {
+      return requestUrl.origin;
+    }
+  } catch {
+    // fall through to configured fallback
+  }
+  return configured && configured.length > 0 ? configured : "http://localhost:3000";
 }
 
 async function ensureStripeCustomerId(params: { userId: string; name: string; email: string; existing: string | null | undefined }) {
@@ -86,7 +95,7 @@ export async function POST(request: Request) {
 
     const priceId = getRequiredPriceId(parsed.data.plan);
     const stripe = getStripe();
-    const appUrl = getAppUrl();
+    const appUrl = getRequestOrigin(request);
     const mode = parsed.data.plan === "day_pass" ? "payment" : "subscription";
 
     const checkoutSession = await stripe.checkout.sessions.create({

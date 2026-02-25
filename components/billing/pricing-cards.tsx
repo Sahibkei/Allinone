@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Plan = {
@@ -15,13 +15,91 @@ type PricingCardsProps = {
   plans: Plan[];
 };
 
+type EntitlementPayload = {
+  authenticated: boolean;
+  plan: "free" | "day_pass" | "pro_monthly" | "pro_yearly";
+  planStatus: "active" | "past_due" | "canceled" | "expired";
+  planExpiresAt: string | null;
+};
+
 export function PricingCards({ plans }: PricingCardsProps) {
   const router = useRouter();
   const [activePlan, setActivePlan] = useState<string | null>(null);
   const [errorText, setErrorText] = useState("");
+  const [entitlement, setEntitlement] = useState<EntitlementPayload | null>(null);
+  const [entitlementLoaded, setEntitlementLoaded] = useState(false);
+  const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
+
+  useEffect(() => {
+    setSearchParams(new URLSearchParams(window.location.search));
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadEntitlement() {
+      try {
+        const response = await fetch("/api/me/entitlement", { cache: "no-store" });
+        if (!response.ok) {
+          return;
+        }
+        const payload = (await response.json()) as EntitlementPayload;
+        if (active) {
+          setEntitlement(payload);
+        }
+      } catch {
+        // Ignore transient fetch errors on pricing view.
+      } finally {
+        if (active) {
+          setEntitlementLoaded(true);
+        }
+      }
+    }
+
+    loadEntitlement();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const hasActivePaidPlan = useMemo(() => {
+    if (!entitlement || !entitlement.authenticated) {
+      return false;
+    }
+    const now = Date.now();
+    const hasActiveDayPass =
+      entitlement.plan === "day_pass" &&
+      entitlement.planStatus === "active" &&
+      !!entitlement.planExpiresAt &&
+      new Date(entitlement.planExpiresAt).getTime() > now;
+    const hasActiveSubscription =
+      (entitlement.plan === "pro_monthly" || entitlement.plan === "pro_yearly") &&
+      entitlement.planStatus === "active";
+    return hasActiveDayPass || hasActiveSubscription;
+  }, [entitlement]);
+
+  const planLabel = useMemo(() => {
+    if (!entitlement || !hasActivePaidPlan) {
+      return "";
+    }
+    if (entitlement.plan === "day_pass") {
+      return "Day Pass active";
+    }
+    if (entitlement.plan === "pro_monthly") {
+      return "Unlimited Monthly active";
+    }
+    if (entitlement.plan === "pro_yearly") {
+      return "Unlimited Yearly active";
+    }
+    return "Plan active";
+  }, [entitlement, hasActivePaidPlan]);
 
   async function startCheckout(plan: Plan) {
     setErrorText("");
+    if (hasActivePaidPlan) {
+      setErrorText(`Your subscription is already active${planLabel ? ` (${planLabel})` : ""}.`);
+      return;
+    }
     setActivePlan(plan.key);
 
     try {
@@ -53,6 +131,17 @@ export function PricingCards({ plans }: PricingCardsProps) {
 
   return (
     <>
+      {searchParams?.get("checkout") === "success" && (
+        <p className="mt-4 rounded-xl border border-emerald-300/35 bg-emerald-400/12 px-3 py-2 text-sm text-emerald-200">
+          Payment completed. Your plan will be activated after Stripe webhook confirmation.
+        </p>
+      )}
+      {searchParams?.get("checkout") === "canceled" && (
+        <p className="mt-4 rounded-xl border border-amber-300/35 bg-amber-400/12 px-3 py-2 text-sm text-amber-200">
+          Checkout canceled. No payment was charged.
+        </p>
+      )}
+
       <section className="mt-8 grid gap-4 md:grid-cols-3">
         {plans.map((plan, index) => (
           <article
@@ -67,14 +156,23 @@ export function PricingCards({ plans }: PricingCardsProps) {
             <button
               type="button"
               onClick={() => startCheckout(plan)}
-              disabled={activePlan === plan.key}
+              disabled={activePlan === plan.key || hasActivePaidPlan}
               className="btn-primary mt-6 inline-flex w-full items-center justify-center px-4 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {activePlan === plan.key ? "Redirecting..." : plan.cta}
+              {activePlan === plan.key
+                ? "Redirecting..."
+                : hasActivePaidPlan
+                  ? "Subscription active"
+                  : plan.cta}
             </button>
           </article>
         ))}
       </section>
+      {entitlementLoaded && hasActivePaidPlan && (
+        <p className="mt-4 rounded-xl border border-emerald-300/35 bg-emerald-400/12 px-3 py-2 text-sm text-emerald-200">
+          Your subscription is active{planLabel ? ` (${planLabel})` : ""}.
+        </p>
+      )}
       {!!errorText && (
         <p className="mt-4 rounded-xl border border-red-300/35 bg-red-400/12 px-3 py-2 text-sm text-red-200">
           {errorText}
