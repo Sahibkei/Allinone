@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { UsagePaywallModal } from "@/components/usage/usage-paywall-modal";
+import { useUsageGuard } from "@/hooks/use-usage-guard";
 
 type OutputFormat = "jpg" | "png";
 
@@ -50,6 +52,7 @@ export function HeicConverterClient() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDownloadingAll, setIsDownloadingAll] = useState(false);
   const [progressText, setProgressText] = useState("");
+  const { blockedState, consumeUsage, closeBlockedModal } = useUsageGuard();
 
   const completedResults = useMemo(
     () => results.filter((item) => item.status === "done"),
@@ -92,6 +95,9 @@ export function HeicConverterClient() {
 
   async function convertFiles() {
     if (!files.length || isProcessing) return;
+    const canUse = await consumeUsage("heic-to-jpg-png");
+    if (!canUse) return;
+
     cancelRequestedRef.current = false;
     runIdRef.current += 1;
     const activeRunId = runIdRef.current;
@@ -314,6 +320,13 @@ export function HeicConverterClient() {
           </div>
         )}
       </section>
+      <UsagePaywallModal
+        open={blockedState.open}
+        reason={blockedState.reason}
+        remaining={blockedState.remaining}
+        resetAt={blockedState.resetAt}
+        onClose={closeBlockedModal}
+      />
     </div>
   );
 }

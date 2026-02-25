@@ -7,6 +7,7 @@ import {
   SESSION_MAX_AGE_SECONDS,
   verifyPassword,
 } from "@/lib/auth";
+import { claimPendingPurchasesForUser } from "@/lib/entitlements";
 import { createSession, deleteSessionByToken, deleteSessionsByUserId } from "@/lib/session-store";
 import { getUsersCollection } from "@/lib/user-store";
 
@@ -51,6 +52,17 @@ export async function POST(request: Request) {
         { status: 403 },
       );
     }
+
+    if (!user._id) {
+      return NextResponse.json({ message: "Unable to load account." }, { status: 500 });
+    }
+
+    await claimPendingPurchasesForUser({
+      userId: user._id,
+      email: user.emailLower,
+    }).catch((claimError) => {
+      console.error("[auth/login] pending purchase claim failed:", summarizeError(claimError));
+    });
 
     // Rotate sessions on each login to guarantee a new active session.
     await deleteSessionsByUserId(user._id).catch(() => {

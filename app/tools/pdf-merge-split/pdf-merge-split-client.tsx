@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PDFDocument } from "pdf-lib";
+import { UsagePaywallModal } from "@/components/usage/usage-paywall-modal";
+import { useUsageGuard } from "@/hooks/use-usage-guard";
 import {
   closestCenter,
   DndContext,
@@ -171,6 +173,7 @@ export function PdfMergeSplitClient() {
   const [isDownloadingAll, setIsDownloadingAll] = useState(false);
   const [statusText, setStatusText] = useState("");
   const [errorText, setErrorText] = useState("");
+  const { blockedState, consumeUsage, closeBlockedModal } = useUsageGuard();
 
   const hasOutputs = useMemo(() => outputFiles.length > 0, [outputFiles.length]);
   const mergeSensors = useSensors(
@@ -214,6 +217,9 @@ export function PdfMergeSplitClient() {
 
   async function runMerge() {
     if (!mergeFiles.length) return;
+    const canUse = await consumeUsage("pdf-merge");
+    if (!canUse) return;
+
     setIsProcessing(true);
     clearObjectUrls();
     setOutputFiles([]);
@@ -251,6 +257,9 @@ export function PdfMergeSplitClient() {
 
   async function runSplit() {
     if (!splitFile) return;
+    const canUse = await consumeUsage("pdf-split");
+    if (!canUse) return;
+
     setIsProcessing(true);
     clearObjectUrls();
     setOutputFiles([]);
@@ -525,6 +534,13 @@ export function PdfMergeSplitClient() {
           </div>
         )}
       </section>
+      <UsagePaywallModal
+        open={blockedState.open}
+        reason={blockedState.reason}
+        remaining={blockedState.remaining}
+        resetAt={blockedState.resetAt}
+        onClose={closeBlockedModal}
+      />
     </div>
   );
 }

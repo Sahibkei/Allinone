@@ -8,6 +8,7 @@ import {
   summarizeError,
 } from "@/lib/auth-error-utils";
 import { hashPassword } from "@/lib/auth";
+import { claimPendingPurchasesForUser } from "@/lib/entitlements";
 import { sendVerificationEmail } from "@/lib/mailer";
 import { getUsersCollection } from "@/lib/user-store";
 
@@ -50,8 +51,20 @@ export async function POST(request: Request) {
       emailVerified: false,
       verificationTokenHash,
       verificationTokenExpiresAt,
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      plan: "free",
+      planStatus: "active",
+      planExpiresAt: null,
       createdAt: now,
       updatedAt: now,
+    });
+
+    await claimPendingPurchasesForUser({
+      userId: insertResult.insertedId,
+      email,
+    }).catch((claimError) => {
+      console.error("[auth/signup] pending purchase claim failed:", summarizeError(claimError));
     });
 
     let mailResult: Awaited<ReturnType<typeof sendVerificationEmail>>;

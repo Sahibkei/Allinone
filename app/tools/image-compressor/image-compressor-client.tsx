@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { UsagePaywallModal } from "@/components/usage/usage-paywall-modal";
+import { useUsageGuard } from "@/hooks/use-usage-guard";
 
 type CompressionProfileKey = "light" | "balanced" | "strong";
 type TargetPresetKey = "none" | "200kb" | "500kb" | "1mb" | "2mb";
@@ -205,6 +207,7 @@ export function ImageCompressorClient() {
   const [targetPreset, setTargetPreset] = useState<TargetPresetKey>("none");
   const [outputFormat, setOutputFormat] = useState<OutputFormatKey>("keep");
   const [progressText, setProgressText] = useState("");
+  const { blockedState, consumeUsage, closeBlockedModal } = useUsageGuard();
 
   const completedResults = useMemo(
     () => results.filter((result) => result.status === "done"),
@@ -247,6 +250,9 @@ export function ImageCompressorClient() {
 
   async function runCompression() {
     if (!files.length || isProcessing) return;
+    const canUse = await consumeUsage("image-compressor");
+    if (!canUse) return;
+
     cancelRequestedRef.current = false;
     runIdRef.current += 1;
     const activeRunId = runIdRef.current;
@@ -504,6 +510,13 @@ export function ImageCompressorClient() {
           </div>
         )}
       </section>
+      <UsagePaywallModal
+        open={blockedState.open}
+        reason={blockedState.reason}
+        remaining={blockedState.remaining}
+        resetAt={blockedState.resetAt}
+        onClose={closeBlockedModal}
+      />
     </div>
   );
 }

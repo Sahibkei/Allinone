@@ -1,7 +1,11 @@
-import { Collection } from "mongodb";
+import { Collection, ObjectId } from "mongodb";
 import { getDb } from "@/lib/mongodb";
 
+export type UserPlan = "free" | "day_pass" | "pro_monthly" | "pro_yearly";
+export type UserPlanStatus = "active" | "past_due" | "canceled" | "expired";
+
 export type UserDocument = {
+  _id?: ObjectId;
   name: string;
   email: string;
   emailLower: string;
@@ -9,6 +13,11 @@ export type UserDocument = {
   emailVerified: boolean;
   verificationTokenHash: string | null;
   verificationTokenExpiresAt: Date | null;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+  plan?: UserPlan;
+  planStatus?: UserPlanStatus;
+  planExpiresAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
   lastLoginAt?: Date;
@@ -27,6 +36,11 @@ export async function getUsersCollection(): Promise<Collection<UserDocument>> {
         users.createIndex(
           { verificationTokenHash: 1 },
           { sparse: true, name: "verification_token_hash_idx" },
+        ),
+        users.createIndex({ stripeCustomerId: 1 }, { sparse: true, name: "stripe_customer_idx" }),
+        users.createIndex(
+          { stripeSubscriptionId: 1 },
+          { sparse: true, name: "stripe_subscription_idx" },
         ),
       ]);
     } catch (error) {

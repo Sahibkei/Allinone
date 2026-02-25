@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { PDFDocument, degrees } from "pdf-lib";
+import { UsagePaywallModal } from "@/components/usage/usage-paywall-modal";
+import { useUsageGuard } from "@/hooks/use-usage-guard";
 import {
   closestCenter,
   DndContext,
@@ -151,6 +153,7 @@ export function PdfRotateReorderClient() {
   const [errorText, setErrorText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [generatedOutput, setGeneratedOutput] = useState<GeneratedOutput | null>(null);
+  const { blockedState, consumeUsage, closeBlockedModal } = useUsageGuard();
 
   const hasPages = useMemo(() => pages.length > 0, [pages.length]);
   const sensors = useSensors(
@@ -244,6 +247,9 @@ export function PdfRotateReorderClient() {
 
   async function exportPdf() {
     if (!sourcePdfBytes || !pages.length || isProcessing) return;
+    const canUse = await consumeUsage("pdf-rotate-reorder");
+    if (!canUse) return;
+
     setIsProcessing(true);
     setErrorText("");
     setStatusText("Applying page order and rotation...");
@@ -383,6 +389,13 @@ export function PdfRotateReorderClient() {
           </article>
         )}
       </section>
+      <UsagePaywallModal
+        open={blockedState.open}
+        reason={blockedState.reason}
+        remaining={blockedState.remaining}
+        resetAt={blockedState.resetAt}
+        onClose={closeBlockedModal}
+      />
     </div>
   );
 }
